@@ -7,7 +7,7 @@ import cors from 'cors';
 import userRoutes from './routes/User.js';  // adjust the path if necessary
 import { setUpGoogleStrategy } from './controllers/User.js';
 import passport from 'passport';
-import session from 'express-session';
+import session from 'express-session';  // <-- Added for session handling
 
 // Load environment variables from .env file
 dotenv.config();
@@ -19,6 +19,17 @@ app.use(express.json());
 app.use(helmet());
 app.use(morgan('common'));
 app.use(cors());
+
+// Session Configuration for OAuth  // <-- Added for session handling
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-session-secret', // Preferably from environment variable
+    resave: false,
+    saveUninitialized: true
+}));
+
+// Passport middleware initialization for OAuth  // <-- Added for passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Set up passport strategies
 setUpGoogleStrategy();
