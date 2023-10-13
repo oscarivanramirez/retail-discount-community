@@ -1,0 +1,3 @@
+[submodule "client/retail-discount"]
+	path = client/retail-discount
+	url = https://github.com/oscarivanramirez/retail-discount-community.git
