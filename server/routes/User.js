@@ -1,25 +1,41 @@
 import express from 'express';
-import { register, login, nearbyUser, verification, googleCallback, setUsername } from '../controllers/User.js';
+import { register, login, nearbyUser, verification, 
+  googleCallback, setUsername, followUser,
+  unfollowUser, getAllFollowing, getAllFollowers} from '../controllers/User.js';
 import passport from 'passport';
+import authenticateUser from '../middlewares/auth.js'
 
 const router = express.Router();
 
 router.post('/register', register);
 router.post('/login', login);
 router.get('/nearby', nearbyUser);
+
 //need to include verification of user middleware. from verified.js
-router.patch('/verification/:id', verification);
+// Follow another user
+router.post('/follow/:userId', authenticateUser, followUser);
+
+// Unfollow a user
+router.post('/unfollow/:userId', authenticateUser, unfollowUser);
+
+// Get all users that the current user is following
+router.get('/following', authenticateUser, getAllFollowing);
+
+// Get all users that are following the current user
+router.get('/followers', authenticateUser, getAllFollowers);
+
+//i dont need /:id because i have access to req.user
+router.patch('/verification', authenticateUser, verification);
+//router.patch('/verification/:id', verification);
 
 router.get('/google', 
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
 router.get('/google/callback', 
-    passport.authenticate('google', { session: false }),//{ session: false, failureFlash: true }),
+    passport.authenticate('google'),
     googleCallback
 );
-
-
 
 router.post('/set-username', setUsername);
 

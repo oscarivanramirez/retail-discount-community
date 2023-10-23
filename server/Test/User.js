@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import chai from 'chai';
 import chaiHttp from 'chai-http';
-import app from '../index.js'; // Adjust this to point to your main server file
-import User from '../models/User.js'; // Adjust this to point to your user model
+import app from '../index.js';
+import User from '../models/User.js'; 
 
 
 chai.use(chaiHttp);
@@ -10,16 +10,16 @@ chai.use(chaiHttp);
 describe('User Registration', () => {
 
     // Clear the database before each test
-    beforeEach(async () => {
+    /*beforeEach(async () => {
         try {
             await User.deleteMany({});
             console.log('All users deleted.');
         } catch (err) {
             console.error('Error deleting users:', err);
         }
-    });    
+    });*/  
 
-    const brands = ['adidas', 'puma', 'nike', 'gamestop'];
+    const brands = ['Adidas', 'Puma', 'Nike', 'Gamestop'];
 
     const testUsers = [
         {
@@ -119,6 +119,196 @@ describe('User Registration', () => {
     // Add more test cases as needed
 });
 
+/*
+describe.only('User Authentication Tests', () => {
+
+    describe('POST /api/users/login', () => {
+        
+        it('should login successfully with correct credentials', async () => {
+            const response = await chai.request(app)
+                .post('/api/users/login')
+                .send({
+                    email: 'testuser@example.com',
+                    password: 'Test@1234',
+                });
+            
+            console.log("Response Body:", response.body);
+            console.log("Response Text:", response.text);
+            console.log("Response Error:", response.error);
+
+            
+            expect(response.status).to.equal(200);
+            expect(response.body).to.have.property('token');
+            expect(response.body).to.have.property('user');
+            expect(response.body.user.email).to.equal('testuser@example.com');
+        });
+
+        it('should return 400 for incorrect credentials', async () => {
+            const response = await chai.request(app)
+                .post('/api/users/login')
+                .send({
+                    email: 'testuser@example.com',
+                    password: 'WrongPassword',
+                });
+
+            expect(response.status).to.equal(400);
+            expect(response.body.message).to.equal('Incorrect password!');
+        });
+
+        it('should return 400 for non-existent user', async () => {
+            const response = await chai.request(app)
+                .post('/api/users/login')
+                .send({
+                    email: 'nonexistent@example.com',
+                    password: 'Test@1234',
+                });
+
+            expect(response.status).to.equal(400);
+            expect(response.body.message).to.equal('User not found!');
+        });
+
+    });
+
+});
+*/
+
+/*
+describe.only('PATCH /verification', () => {
+    let authToken;
+
+    before(async () => {
+        // Perform authentication and get an authentication token
+        const authResult = await chai.request(app)
+            .post("/api/users/login")
+            .send({
+                email: "testuser@example.com",
+                password: "Test@1234",
+            });
+
+        // Expectations to prove successful login
+        expect(authResult.status).to.equal(200);
+        expect(authResult.body).to.have.property('token');
+        expect(authResult.body).to.have.property('user');
+        expect(authResult.body.user.email).to.equal('testuser@example.com');
+        authToken = authResult.body.token;
+    });
+    
+    it.only('should update user successfully with valid JWT token', async () => {
+        const response = await chai.request(app)
+            .patch('/api/users/verification')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({
+                IsRetailVerified: true,
+                permanentAddress: {
+                    street: "86-01 Broadway",
+                    city: "Elmhurst",
+                    state: "NY",
+                    zip: "11373",
+                    country: "USA"
+                },
+                phoneNumber: "1234567899",
+                worksAt: "Nike"
+            });
+            console.log("Response Body:", response.body);
+            console.log("Response Text:", response.text);
+            console.log("Response Error:", response.error);
+
+        expect(response.status).to.equal(200);
+        expect(response.body.message).to.equal('User updated successfully!');
+    });
+
+    it('should fail when provided with a fake address', async () => {
+        const response = await chai.request(app)
+            .patch('/api/users/verification')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({
+                IsRetailVerified: true,
+                permanentAddress: {
+                    street: "123 Fake St",
+                    city: "Nowhere",
+                    state: "ZZ",
+                    zip: "99999",
+                    country: "Nowhereland"
+                },
+                phoneNumber: "123456789",
+                worksAt: "Nike"
+            });
+    
+        // Adjust the expected response based on your server's error handling. 
+        // For example, if you're sending a 400 status with an 'Invalid address' message:
+        expect(response.status).to.equal(400);
+        expect(response.body.message).to.equal('Invalid address provided');
+    });
+
+    it('should fail due to missing JWT token', async () => {
+        const response = await chai.request(app).patch('/verification');
+
+        expect(response.status).to.equal(401);
+        expect(response.body.error).to.equal('No auth token provided');
+    });
+
+    it('should fail due to invalid JWT token', async () => {
+        const response = await chai.request(app)
+            .patch('/verification')
+            .set('Authorization', 'Bearer invalidToken');
+
+        expect(response.status).to.equal(401);
+        expect(response.body.error).to.equal('Failed to authenticate token');
+    });
+    
+    // Add more tests as needed...
+});
+*/
+
+describe('PATCH /verification', () => {
+    let authToken;
+
+    before(async () => {
+        // Perform authentication and get an authentication token
+        const authResult = await chai.request(app)
+            .post("/api/users/login")
+            .send({
+                email: "testuser2@example.com",
+                password: "Test@1234",
+            });
+
+        // Expectations to prove successful login
+        expect(authResult.status).to.equal(200);
+        expect(authResult.body).to.have.property('token');
+        expect(authResult.body).to.have.property('user');
+        expect(authResult.body.user.email).to.equal('testuser2@example.com');
+        authToken = authResult.body.token;
+    });
+    
+    it('should update user successfully with valid JWT token', async () => {
+        const response = await chai.request(app)
+            .patch('/api/users/verification')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({
+                IsRetailVerified: true,
+                permanentAddress: {
+                    street: "102-35 47th Ave",
+                    city: "Corona",
+                    state: "NY",
+                    zip: "11368",
+                    country: "USA"
+                },
+                phoneNumber: "4512367899",
+                worksAt: "Nike"
+            });
+            console.log("Response Body:", response.body);
+            console.log("Response Text:", response.text);
+            console.log("Response Error:", response.error);
+
+        expect(response.status).to.equal(200);
+        expect(response.body.message).to.equal('User updated successfully!');
+    });
+});
+
+
+
+
+
 describe.only('GET /nearbyuser', () => {
     it('should find users near given latitude and longitude', (done) => {
         chai.request(app)
@@ -139,7 +329,17 @@ describe.only('GET /nearbyuser', () => {
                 done();
             });
     });
+    
     it.only('should find users near given address', (done) => {
+        chai.request(app)
+            .get('/api/users/nearby?address=102-39+47th+Ave,+Queens,+NY+11368,+USA&zipcode=&radius=5&usedCurrentLocation=false')
+            .end((err, res) => {
+                expect(res).to.have.status(200);
+                expect(res.body).to.be.an('array');
+                done();
+            });
+    });
+    it('should find users near given address', (done) => {
         chai.request(app)
             .get('/api/users/nearby?address=10239+47th+Ave,+Corona,+NY+11368&radius=5&brands=puma')
             .end((err, res) => {

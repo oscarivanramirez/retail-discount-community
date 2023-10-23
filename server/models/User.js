@@ -68,8 +68,11 @@ const userSchema = new mongoose.Schema({
     },     
     ratings: { type: Number, required: false, default: 0 },
     worksAt: { type: String, required: false, default: '' },
+    // you can make this a schema to keep track of all the companies in your website
+    // or you should make it so there is a set list of stores that your web appp provides
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    //paystub picture and us state ID pictures needed
 });
 
 userSchema.pre('save', function(next) {
@@ -96,8 +99,6 @@ userSchema.pre('save', function(next) {
 userSchema.pre('save', async function(next) {
     const user = this;
 
-    // Only geocode the address if it's been modified (or is new)
-    //user.IsRetailVerified && user.isModified('permanentAddress')
     if (user.IsRetailVerified && user.isModified('permanentAddress')) {
         const { street, city, state, zip, country } = user.permanentAddress;
         const fullAddress = `${street}, ${city}, ${state}, ${zip}, ${country}`;
@@ -105,17 +106,29 @@ userSchema.pre('save', async function(next) {
         try {
             const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
             const response = await axios.get(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${GOOGLE_API_KEY}`);
-            const location = response.data.results[0].geometry.location;
-
-            user.permanentAddress.coordinates.coordinates = [location.lng, location.lat];
+            
+            // Check if the response has results. If not, the address is likely invalid.
+            if (response.data.results && response.data.results.length > 0) {
+                const location = response.data.results[0].geometry.location;
+                user.permanentAddress.coordinates.coordinates = [location.lng, location.lat];
+            } else {
+                console.warn("Invalid address provided:", fullAddress);
+                // If you want to prevent save:
+                next(new Error("Invalid address provided"));
+            }
         } catch (error) {
-            // Handle error - e.g., if geocoding fails, you might want to prevent the save and send an error to the client
+            console.error("Geocoding error:", error.message);
+            // If you don't want this error to halt the save operation, just call next() without the error:
+            // next();
+            
+            // If you want to propagate the error:
             next(error);
         }
+    } else {
+        next();
     }
-
-    next();
 });
+
 
 
 const User = mongoose.model('User', userSchema);

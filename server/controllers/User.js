@@ -4,6 +4,8 @@ import axios from 'axios';
 import passport from 'passport';
 import { OAuth2Strategy as GoogleStrategy } from 'passport-google-oauth';
 import dotenv from 'dotenv';
+import jwt from "jsonwebtoken";
+
 
 dotenv.config()
 
@@ -30,7 +32,8 @@ export const setUpGoogleStrategy = () => {
     passport.use(new GoogleStrategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: 'http://localhost:6001/api/users/google/callback'
+        callbackURL: 'http://localhost:6001/api/users/google/callback',
+        scope: ['profile', 'email']
       },
       async (token, tokenSecret, profile, done) => {
         try {
@@ -48,12 +51,11 @@ export const setUpGoogleStrategy = () => {
                         unique = true;
                     }
                 }
-    
                 user = await User.create({
                     googleId: profile.id,
                     email: profile.emails[0].value,
-                    firstName: profile.name.givenName,
-                    lastName: profile.name.familyName,
+                    firstname: profile.name.givenName,
+                    lastname: profile.name.familyName,
                     authType: 'google',
                     username: username
                 });
@@ -102,7 +104,6 @@ export const login = async (req, res) => {
         if (!validPassword) {
             return res.status(400).json({ message: 'Incorrect password!' });
         }
-
         // Token generation
         const token = jwt.sign(
             { userId: user._id, email: user.email }, // payload
@@ -120,6 +121,8 @@ export const nearbyUser = async (req, res) => {
     try {
         let { latitude, longitude, radius, address, zipcode, brands } = req.query;
         
+        //console.log("BRANDS", brands);
+        //console.log("DOES THE ADDRESS EXIST", address ? "ADDRESS EXIST" : "ADDRESS DOES NOT EXIST")
         // Ensure at least one location-related parameter is provided
         if(!(latitude && longitude) && !address && !zipcode) {
             return res.status(400).json({ message: "Provide latitude/longitude or address or zipcode." });
@@ -139,11 +142,20 @@ export const nearbyUser = async (req, res) => {
             return res.status(400).json({ message: "Couldn't determine location." });
         }
 
+        console.log("Brands", brands);
+        let brandFilter = {}
+        if(brands){
+            brandFilter = { 'worksAt': { $in: brands } };
+        }
+        console.log("Brand filter:", brandFilter);
+
+        /*
         let brandFilter = {};
         if (brands) {
             const brandArray = brands.split(',');  // Split by comma to get individual brands
             brandFilter = { 'worksAt': { $in: brandArray } };  // Query to match users that work at any of the specified brands
         }
+        */
 
         const nearbyUsers = await findUsersNearLocation(parseFloat(latitude), parseFloat(longitude), parseFloat(radius), brandFilter);
         console.log('nearby users:', nearbyUsers);
@@ -185,22 +197,27 @@ async function findUsersNearLocation(latitude, longitude, radiusInMiles, brandFi
         },
         ...brandFilter  // Spread in the brand filter if it exists
     };
+    console.log("Executing geospatial query:", JSON.stringify(query));
 
     const usersNearLocation = await User.find(query);
     return usersNearLocation;
 }
 
+//paystub picture and us state ID pictures needed for verification
 export const verification = async (req, res) => {
     try {
-        const userID = req.params.id;
-        const {IsRetailVerified, permanentAddress, phoneNumber, worksAt} = req.body;
-        
-        // Find the user by ID
-        const user = await User.findById(userID);
+        const user = req.user;
+        console.log('User from request:', user);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found!' });
         }
+        const {IsRetailVerified, permanentAddress, phoneNumber, worksAt} = req.body;
+        
+        console.log("HERE IS USER PERMANENT ADDRESS", permanentAddress);
+        console.log("HERE IS USER PERMANENT ADDRESS STREET", permanentAddress.street);
+        // Find the user by ID
+        //const user = await User.findById(userID);
 
         user.IsRetailVerified = IsRetailVerified;
         if (user.IsRetailVerified) {
@@ -271,3 +288,59 @@ export const setUsername = async (req, res) => {
         return res.status(500).json({ reason: "internal_error", message: "Error setting username." });
     }
 };
+
+
+
+// Follow another user
+export const followUser = async (req, res) => {
+    const userIdToFollow = req.params.userId;
+    const currentUser = req.user;
+
+    if (!currentUser.following.includes(userIdToFollow)) {
+        currentUser.following.push(userIdToFollow);
+        await currentUser.save();
+
+        const userBeingFollowed = await User.findById(userIdToFollow);
+        userBeingFollowed.followers.push(currentUser._id);
+        await userBeingFollowed.save();
+
+        res.status(200).json({ message: 'User followed successfully!' });
+    } else {
+        res.status(400).json({ message: 'You are already following this user!' });
+    }
+}
+
+// Unfollow a user
+export const unfollowUser = async (req, res) => {
+    const userIdToUnfollow = req.params.userId;
+    const currentUser = req.user;
+
+    if (currentUser.following.includes(userIdToUnfollow)) {
+        currentUser.following.pull(userIdToUnfollow);
+        await currentUser.save();
+
+        const userBeingUnfollowed = await User.findById(userIdToUnfollow);
+        userBeingUnfollowed.followers.pull(currentUser._id);
+        await userBeingUnfollowed.save();
+
+        res.status(200).json({ message: 'User unfollowed successfully!' });
+    } else {
+        res.status(400).json({ message: 'You are not following this user!' });
+    }
+}
+
+// Get all users that the current user is following
+export const getAllFollowing = async (req, res) => {
+    const currentUser = req.user;
+    const followingUsers = await User.find({ '_id': { $in: currentUser.following } });
+
+    res.status(200).json(followingUsers);
+}
+
+// Get all users that are following the current user
+export const getAllFollowers = async (req, res) => {
+    const currentUser = req.user;
+    const followers = await User.find({ '_id': { $in: currentUser.followers } });
+
+    res.status(200).json(followers);
+}
