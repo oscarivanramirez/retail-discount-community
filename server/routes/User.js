@@ -1,7 +1,8 @@
 import express from 'express';
 import { register, login, nearbyUser, verification, 
   googleCallback, setUsername, followUser,
-  unfollowUser, getAllFollowing, getAllFollowers} from '../controllers/User.js';
+  unfollowUser, getAllFollowing, getAllFollowers, meData,
+  logout} from '../controllers/User.js';
 import passport from 'passport';
 import authenticateUser from '../middlewares/auth.js'
 
@@ -9,6 +10,7 @@ const router = express.Router();
 
 router.post('/register', register);
 router.post('/login', login);
+router.get('/logout', logout);
 router.get('/nearby', nearbyUser);
 
 //need to include verification of user middleware. from verified.js
@@ -36,6 +38,8 @@ router.get('/google/callback',
     passport.authenticate('google'),
     googleCallback
 );
+
+router.get('/me', authenticateUser, meData);
 
 router.post('/set-username', setUsername);
 

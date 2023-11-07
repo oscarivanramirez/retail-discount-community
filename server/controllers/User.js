@@ -23,11 +23,15 @@ export const setUpGoogleStrategy = () => {
         done(null, user.id);
     });
 
-    passport.deserializeUser((id, done) => {
-        User.findById(id, (err, user) => {
-            done(err, user);
-        });
+    passport.deserializeUser(async (id, done) => {
+        try {
+            const user = await User.findById(id);
+            done(null, user);
+        } catch (err) {
+            done(err);
+        }
     });
+    
     
     passport.use(new GoogleStrategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
@@ -116,6 +120,18 @@ export const login = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
+
+
+export const logout = async (req, res) => {
+    if (req.session) {
+        req.session.destroy(); 
+        res.clearCookie('connect.sid', { path: '/', expires: new Date(0) });
+        res.status(200).json({ message: "Logged out successfully" });
+    } else {
+        res.status(200).json({ message: "No active session to log out from" });
+    }
+}
+
 
 export const nearbyUser = async (req, res) => {
     try {
@@ -243,21 +259,15 @@ export const verification = async (req, res) => {
 };
 
 export const googleCallback = (req, res) => {
-    // Handle case when authentication fails and there's no user object
     if (!req.user) {
-        return res.status(401).json({
-            success: false,
-            reason: "authentication_failed",
-            message: "Authentication failed"
-        });
+        console.log("ERROR IN GOOGLE CALLBACK");
+        return res.redirect('http://localhost:3000/login?error=authentication_failed');
     }
 
-    // Handle successful authentication
-    res.status(200).json({
-        success: true,
-        message: "Logged in successfully"
-    });
+    // Here's the important part: Redirect to the frontend after successful authentication
+    return res.redirect('http://localhost:3000/auth/success');
 };
+
 
 
 
@@ -343,4 +353,13 @@ export const getAllFollowers = async (req, res) => {
     const followers = await User.find({ '_id': { $in: currentUser.followers } });
 
     res.status(200).json(followers);
+}
+
+
+export const meData = async (req, res) => {
+    if (req.isAuthenticated()) {
+        res.json({ authenticated: true, user: req.user });
+    } else {
+        res.json({ authenticated: false });
+    }
 }

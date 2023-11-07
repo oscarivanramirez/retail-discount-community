@@ -3,6 +3,7 @@ import User from '../models/User.js';
 
 const authenticateUser = (req, res, next) => {
   // JWT authentication
+  console.log("MIDDLEWARE REQ SESSION", req.session, "REQ", req.headers);
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     const token = req.headers.authorization.split(' ')[1];
     

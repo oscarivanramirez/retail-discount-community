@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import chai from 'chai';
 import chaiHttp from 'chai-http';
-import app from '../index.js';
-import User from '../models/User.js'; 
+import app from '../../index.js';
+import User from '../../models/User.js'; 
 
 
 chai.use(chaiHttp);
